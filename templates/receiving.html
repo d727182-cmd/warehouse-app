@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Приёмка (возврат на склад){% endblock %}
+{% block content %}
+<h2>🚚 Приёмка оборудования на склад</h2>
+<p>Отметьте оборудование, которое возвращается, и укажите количество (по умолчанию всё, что числится на локации).</p>
+<form method="POST">
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Вернуть</th>
+                <th>Оборудование</th>
+                <th>Локация</th>
+                <th>Числится на локации</th>
+                <th>Количество к возврату</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td><input type="checkbox" class="return-checkbox" data-equipment="{{ item.equipment }}" data-location="{{ item.location }}" data-max="{{ item.quantity }}"></td>
+                <td>{{ item.equipment }}</td>
+                <td>{{ item.location }}</td>
+                <td>{{ item.quantity }}</td>
+                <td><input type="number" name="quantity_{{ loop.index0 }}" class="return-quantity" value="{{ item.quantity }}" min="1" max="{{ item.quantity }}" disabled style="width: 100px;"></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="mb-3">
+        <label for="responsible" class="form-label">Ответственный за приёмку</label>
+        <input type="text" class="form-control" id="responsible" name="responsible">
+    </div>
+    <div class="mb-3">
+        <label for="comment" class="form-label">Комментарий</label>
+        <input type="text" class="form-control" id="comment" name="comment">
+    </div>
+    <button type="submit" class="btn btn-success">📦 Вернуть выбранное на склад</button>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">Отмена</a>
+</form>
+
+<script>
+    // Активируем поле ввода количества при отметке чекбокса
+    const checkboxes = document.querySelectorAll('.return-checkbox');
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', function() {
+            const row = this.closest('tr');
+            const qtyInput = row.querySelector('.return-quantity');
+            qtyInput.disabled = !this.checked;
+            if (!this.checked) qtyInput.value = qtyInput.getAttribute('max');
+        });
+    });
+    // Перед отправкой собираем данные в один массив
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        // Создаём скрытые поля для каждого выбранного возврата
+        checkboxes.forEach(cb => {
+            if (cb.checked) {
+                const row = cb.closest('tr');
+                const equipment = cb.getAttribute('data-equipment');
+                const location = cb.getAttribute('data-location');
+                let qty = row.querySelector('.return-quantity').value;
+                if (!qty || qty < 1) qty = cb.getAttribute('data-max');
+                // Создаём поля с одинаковыми именами массивов
+                const eqInput = document.createElement('input');
+                eqInput.type = 'hidden';
+                eqInput.name = 'equipment[]';
+                eqInput.value = equipment;
+                const locInput = document.createElement('input');
+                locInput.type = 'hidden';
+                locInput.name = 'location[]';
+                locInput.value = location;
+                const qtyInput = document.createElement('input');
+                qtyInput.type = 'hidden';
+                qtyInput.name = 'quantity[]';
+                qtyInput.value = qty;
+                form.appendChild(eqInput);
+                form.appendChild(locInput);
+                form.appendChild(qtyInput);
+            }
+        });
+    });
+</script>
+{% endblock %}

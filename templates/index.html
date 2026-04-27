@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Остатки оборудования{% endblock %}
+{% block content %}
+<h2 class="mb-3">Текущие остатки</h2>
+<div class="table-responsive">
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>Оборудование</th>
+                <th>Всего</th>
+                <th>На складе</th>
+                <th>На локациях</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for name, data in stock.items() %}
+            <tr>
+                <td>{{ name }}</td>
+                <td>{{ data.total }}</td>
+                <td class="{% if data.stock < 5 %}text-danger fw-bold{% endif %}">{{ data.stock }}</td>
+                <td>
+                    {% if data.locations %}
+                        <ul class="mb-0 ps-3">
+                        {% for loc, qty in data.locations.items() %}
+                            <li>{{ loc }}: {{ qty }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-center">Нет данных. Проверьте настройки таблицы.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<p class="text-muted mt-3">* Для перемещения оборудования нажмите "Переместить" в меню.</p>
+{% endblock %}
