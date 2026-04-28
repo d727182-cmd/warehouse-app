@@ -1,30 +1,31 @@
 {% extends "base.html" %}
 {% block title %}Переместить оборудование{% endblock %}
 {% block content %}
-<h2>🚛 Переместить оборудование</h2>
+<h2>🚚 Переместить оборудование</h2>
 <p>Вы можете отправить несколько позиций на одну локацию за раз.</p>
 <form method="POST" id="moveForm">
     <div class="mb-3">
         <label for="destination" class="form-label">Локация (Куда)</label>
-        <input type="text" class="form-control" id="destination" name="destination" required placeholder="Например: Поляна-Восток, Сцена, ДК Химик">
+        <input type="text" class="form-control" id="destination" name="destination" required placeholder="Например: ДК Химик">
     </div>
     
     <div class="mb-3">
         <label class="form-label">Оборудование и количество</label>
         <div id="items-container">
-            <div class="row mb-2 item-row">
-                <div class="col-md-6">
-                    <select class="form-select equipment-select" name="equipment[]" required>
-                        <option value="">Выберите оборудование</option>
+            <div class="row mb-2 item-row align-items-center">
+                <div class="col-md-6 mb-2">
+                    <input type="text" class="form-control equipment-search" placeholder="Поиск оборудования...">
+                    <select class="form-select equipment-select mt-1" name="equipment[]" required>
+                        <option value="">-- Выберите оборудование --</option>
                         {% for name in equipment_names %}
                         <option value="{{ name }}">{{ name }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-4 mb-2">
                     <input type="number" class="form-control" name="quantity[]" placeholder="Количество" min="1" required>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-2 mb-2">
                     <button type="button" class="btn btn-danger remove-row">✖</button>
                 </div>
             </div>
@@ -46,33 +47,70 @@
 </form>
 
 <script>
-    // Динамическое добавление строк
-    const container = document.getElementById('items-container');
-    document.getElementById('add-row').addEventListener('click', function() {
+    // Функция для фильтрации опций select по тексту поиска
+    function filterEquipment(selectEl, searchEl) {
+        const filter = searchEl.value.toLowerCase();
+        const options = selectEl.options;
+        for (let i = 0; i < options.length; i++) {
+            const txt = options[i].text.toLowerCase();
+            if (txt.includes(filter) || options[i].value === "") {
+                options[i].style.display = "";
+            } else {
+                options[i].style.display = "none";
+            }
+        }
+    }
+    
+    // Привязываем поиск к каждому существующему ряду
+    function attachSearchToRow(row) {
+        const searchInput = row.querySelector('.equipment-search');
+        const select = row.querySelector('.equipment-select');
+        if (searchInput && select) {
+            searchInput.addEventListener('input', function() {
+                filterEquipment(select, searchInput);
+            });
+        }
+    }
+    
+    // Клонирование строки
+    function cloneRow() {
+        const container = document.getElementById('items-container');
         const firstRow = container.querySelector('.item-row');
         const newRow = firstRow.cloneNode(true);
-        newRow.querySelectorAll('input, select').forEach(field => {
-            if (field.tagName === 'SELECT') field.selectedIndex = 0;
-            else field.value = '';
-        });
+        // Очищаем значения
+        newRow.querySelectorAll('.equipment-search').forEach(input => input.value = '');
+        newRow.querySelectorAll('.equipment-select').forEach(select => select.selectedIndex = 0);
+        newRow.querySelectorAll('input[name="quantity[]"]').forEach(input => input.value = '');
+        // Привязываем поиск к новой строке
+        attachSearchToRow(newRow);
         container.appendChild(newRow);
-    });
-    container.addEventListener('click', function(e) {
+    }
+    
+    // Удаление строки
+    document.getElementById('items-container').addEventListener('click', function(e) {
         if (e.target.classList.contains('remove-row')) {
-            if (container.children.length > 1) {
+            const rows = document.querySelectorAll('.item-row');
+            if (rows.length > 1) {
                 e.target.closest('.item-row').remove();
             } else {
                 alert('Должна быть хотя бы одна позиция');
             }
         }
     });
-    // Убедимся, что при отправке убираем пустые строки (если пользователь удалил выбор)
+    
+    // Добавление строки
+    document.getElementById('add-row').addEventListener('click', cloneRow);
+    
+    // Инициализация для существующих строк
+    document.querySelectorAll('.item-row').forEach(row => attachSearchToRow(row));
+    
+    // Валидация формы
     document.getElementById('moveForm').addEventListener('submit', function(e) {
         let valid = true;
         document.querySelectorAll('.item-row').forEach(row => {
-            const eq = row.querySelector('.equipment-select').value;
+            const select = row.querySelector('.equipment-select');
             const qty = row.querySelector('input[name="quantity[]"]').value;
-            if (!eq || !qty) {
+            if (!select.value || !qty) {
                 valid = false;
                 row.style.border = '1px solid red';
             } else {
@@ -81,7 +119,7 @@
         });
         if (!valid) {
             e.preventDefault();
-            alert('Заполните все поля (оборудование и количество)');
+            alert('Заполните оборудование и количество для всех строк');
         }
     });
 </script>
